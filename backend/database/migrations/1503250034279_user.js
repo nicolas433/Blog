@@ -16,7 +16,7 @@ class UserSchema extends Schema {
       table.boolean('isAdm').notNullable().defaultTo(false)
       table.timestamps()
     })
-  }
+  } 
 
   down () {
     this.drop('users')

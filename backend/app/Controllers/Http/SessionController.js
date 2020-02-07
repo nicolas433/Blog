@@ -6,7 +6,7 @@ class SessionController {
       'email',
       'password'
     ]);
-    const token = await auth.attempt(email, password);
+    const { token } = await auth.attempt(email, password);
 
     return { token };
   }
