@@ -1,37 +1,29 @@
 const { test, trait } = use('Test/Suite')('Session');
 
-const Mail = use('Mail');
-
 /** @type {import('@adonisjs/lucid/src/Factory')} */
 const Factory = use('Factory');
 
 /**@type {typeof import('@adonisjs/lucid/src/Lucid/Model')} */
 const User = use('App/Models/User');
 
-
 trait('Test/ApiClient');
 trait('DatabaseTransactions');
 
-test("It should send an email with reset password instructions",
+test("It should return JWT token when session is created",
   async ({ assert, client }) => {
-    Mail.fake();
-
-    const forgotPayload = {
+    const sessionPayload = {
       email: "ngrisoste@gmail.com",
+      password: "12346722"
     };
 
-    await Factory
+    const user = await Factory
       .model('App/Models/User')
-      .create(forgotPayload);
+      .create(sessionPayload);
 
     const response = await client
-      .post('/forgot')
-      .send(forgotPayload)
+      .post('/sessions')
+      .send(sessionPayload)
       .end();
-
     response.assertStatus(200);
-
-    const recentEmail = Mail.pullRecent();
-    assert.equal(recentEmail.message.to[0].address, forgotPayload.email);
-    Mail.restore();
+    assert.exists(response.body.token);
   });
