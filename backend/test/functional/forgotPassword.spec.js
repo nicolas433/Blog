@@ -51,8 +51,7 @@ test('It should send an email with reset password instructions',
   });
 
 
-
-test('It should be able to reset password',
+  test('It should be able to reset password',
   async ({ assert, client }) => {
     const email = 'ngrisoste@gmail.com';
     const token = await generateForgotPasswordToken(email, client);
