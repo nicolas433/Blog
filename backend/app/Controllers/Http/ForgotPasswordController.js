@@ -1,6 +1,10 @@
 'use strict'
 
+const { randomBytes } = require('crypto');
+const { promisify } = require('util');
+
 const Mail = use('Mail');
+const Env = use('Env');
 
 /**@type {typeof import('@adonisjs/lucid/src/Lucid/Model')} */
 const User = use('App/Models/User');
@@ -11,12 +15,25 @@ class ForgotPasswordController {
 
     const user = await User.findByOrFail('email', email);
 
-    await Mail.send('emails.forgotpassword', { name: user.name }, (message) => {
-      message
-        .to(user.email)
-        .from('ngrisoste2@gmail.com')
-        .subject('Blog password retrieval.')
+    const random = await promisify(randomBytes)(24);
+    const token = random.toString('hex');
+
+    await user.tokens().create({
+      token,
+      type: 'forgotpassword',
     })
+
+    const resetPasswordURL = `${Env.get('FRONT_URL')}/reset?token=${token}`;
+
+    await Mail.send(
+      'emails.forgotpassword',
+      { name: user.name, resetPasswordURL },
+      (message) => {
+        message
+          .to(user.email)
+          .from('ngrisoste2@gmail.com')
+          .subject('Blog password retrieval.')
+      })
   }
 }
 
