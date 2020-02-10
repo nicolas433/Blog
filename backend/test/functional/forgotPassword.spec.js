@@ -1,6 +1,7 @@
 const { test, trait, beforeEach, afterEach } = use('Test/Suite')('Session');
 
 const Mail = use('Mail');
+const Hash = use('Hash');
 
 /** @type {import('@adonisjs/lucid/src/Factory')} */
 const Factory = use('Factory');
@@ -51,12 +52,12 @@ test('It should send an email with reset password instructions',
   });
 
 
-  test('It should be able to reset password',
+test('It should be able to reset password',
   async ({ assert, client }) => {
     const email = 'ngrisoste@gmail.com';
-    const token = await generateForgotPasswordToken(email, client);
+    const { token } = await generateForgotPasswordToken(email, client);
 
-    await client.post('/reset')
+    const response = await client.post('/reset')
       .send({
         token,
         password: '123456',
@@ -64,10 +65,12 @@ test('It should send an email with reset password instructions',
       })
       .end();
 
-      const user = await User.findBy('email', email);
-      const checkPassword = await Hash.verify('123456', user.password);
+    response.assertStatus(204);
 
-      assert.isTrue(checkPassword);
+    const user = await User.findBy('email', email);
+    const checkPassword = await Hash.verify('123456', user.password);
+
+    assert.isTrue(checkPassword);
 
   }
 )
