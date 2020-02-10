@@ -1,4 +1,4 @@
-const { test, trait, beforeEach, afterEach } = use('Test/Suite')('Session');
+const { test, trait } = use('Test/Suite')('Session');
 
 const Mail = use('Mail');
 const Hash = use('Hash');
@@ -13,34 +13,21 @@ const User = use('App/Models/User');
 trait('Test/ApiClient');
 trait('DatabaseTransactions');
 
-beforeEach(() => {
-  Mail.fake();
-})
-
-afterEach(() => {
-  Mail.restore();;
-})
-
-async function generateForgotPasswordToken(email, client) {
-  const user = await Factory
-    .model('App/Models/User')
-    .create({ email });
-
-  await client
-    .post('/forgot')
-    .send({ email })
-    .end();
-
-  const token = await user.tokens().first();
-
-  return token;
-}
-
-
 test('It should send an email with reset password instructions',
   async ({ assert, client }) => {
+    Mail.fake();
     const email = 'ngrisoste@gmail.com';
-    const token = await generateForgotPasswordToken(email, client);
+
+    const user = await Factory
+      .model('App/Models/User')
+      .create({ email });
+
+    await client
+      .post('/forgot')
+      .send({ email })
+      .end();
+
+    const token = await user.tokens().first();
 
     const recentEmail = Mail.pullRecent();
 
@@ -49,17 +36,28 @@ test('It should send an email with reset password instructions',
     assert.include(token.toJSON(), {
       type: 'forgotpassword'
     });
+
+    Mail.restore();
   });
 
 
 test('It should be able to reset password',
   async ({ assert, client }) => {
     const email = 'ngrisoste@gmail.com';
-    const { token } = await generateForgotPasswordToken(email, client);
+
+    const user = await Factory.model('App/Models/User').create({ email });
+    const userToken = await Factory.model('App/Models/Token').make();
+
+    await user.tokens().save(userToken);
+
+
+    const { token } = await Factory
+      .model('App/Models/Token')
+      .create({ type: 'forgotpassword' });
 
     const response = await client.post('/reset')
       .send({
-        token,
+        token: userToken.token,
         password: '123456',
         password_confirmation: '123456'
       })
@@ -67,7 +65,7 @@ test('It should be able to reset password',
 
     response.assertStatus(204);
 
-    const user = await User.findBy('email', email);
+    await user.reload();
     const checkPassword = await Hash.verify('123456', user.password);
 
     assert.isTrue(checkPassword);
