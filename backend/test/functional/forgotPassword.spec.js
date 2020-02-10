@@ -4,7 +4,7 @@ const { subHours, format } = require('date-fns');
 
 const Mail = use('Mail');
 const Hash = use('Hash');
-const Database = use('Database');
+//const Database = use('Database');
 
 /** @type {import('@adonisjs/lucid/src/Factory')} */
 const Factory = use('Factory');
@@ -63,7 +63,8 @@ test('It should be able to reset password',
       .send({
         token: userToken.token,
         password: '123456',
-        password_confirmation: '123456'
+        password_confirmation: '123456',
+        created_at: userToken.created_at
       })
       .end();
 
@@ -79,31 +80,38 @@ test('It should be able to reset password',
 
 test('It cannot reset password after 2h of forgot password request',
   async ({ assert, client }) => {
+    const dateWithSub = format(subHours(new Date(), 5), 'yyyy-MM-dd HH:ii:ss');
+
     const email = 'ngrisoste@gmail.com';
 
     const user = await Factory.model('App/Models/User').create({ email });
     const userToken = await Factory.model('App/Models/Token').make();
+
     await user.tokens().save(userToken);
+    const { token } = await Factory
+      .model('App/Models/Token')
+      .create({ type: 'forgotpassword' });
 
-    const dateWithSub = format(subHours(new Date(), 5), 'yyyy-MM-dd HH:ii:ss');
-
+    userToken.created_at = dateWithSub;
+    await userToken.save();
+    /*
     await Database
       .table('tokens')
-      .where('token', userToken.token)
+      .where('token', userToken)
       .update('created_at', dateWithSub);
 
     await userToken.reload();
-
-
+    */
+    //console.log(userToken.created_at);
     const response = await client.post('/reset')
       .send({
         token: userToken.token,
         password: '123456',
-        password_confirmation: '123456'
+        password_confirmation: '123456',
+        created_at: userToken.created_at
       })
       .end();
 
     response.assertStatus(400);
-
   }
 );
