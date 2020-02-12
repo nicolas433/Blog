@@ -102,13 +102,14 @@ test('It cannot reset password after 2h of forgot password request',
 
     await userToken.reload();
     */
-    //console.log(userToken.created_at);
+    //console.log(userToken);
+
     const response = await client.post('/reset')
       .send({
         token: userToken.token,
         password: '123456',
         password_confirmation: '123456',
-        created_at: userToken.created_at
+        //created_at: userToken.created_at
       })
       .end();
 
